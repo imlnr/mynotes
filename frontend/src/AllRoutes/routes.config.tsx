@@ -2,9 +2,8 @@ import React from 'react';
 import Login from '../pages/Authentication/Login';
 import VerifyOtp from '../pages/Authentication/VerifyOtp';
 import LandingPage from '../pages/Public/LandingPage';
+import Dashboard from '../pages/Private/Dashboard';
 
-// Import Dashboard or other private pages here when created
-const Dashboard = () => <div className="p-4" > Dashboard(Private Page) </div>;
 const Signup = () => <div className="p-4" > Signup Page </div>;
 
 interface RouteConfig {
