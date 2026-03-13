@@ -12,8 +12,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@blocknote/core": "^0.47.1",
+    "@blocknote/mantine": "^0.47.1",
+    "@blocknote/react": "^0.47.1",
     "@fontsource-variable/geist": "^5.2.8",
+    "@mantine/core": "^8.3.16",
+    "@mantine/hooks": "^8.3.16",
     "@react-oauth/google": "^0.13.4",
+    "@reduxjs/toolkit": "^2.11.2",
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.6",
     "class-variance-authority": "^0.7.1",
@@ -23,6 +29,7 @@
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.0",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^7.13.1",
     "shadcn": "^4.0.2",
     "sonner": "^2.0.7",

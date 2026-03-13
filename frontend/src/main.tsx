@@ -1,5 +1,7 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
+import { Provider } from "react-redux"
+import { store } from "./store"
 
 import "./index.css"
 import App from "./App.tsx"
@@ -10,10 +12,12 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'placeholder-c
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
-    </GoogleOAuthProvider>
+    <Provider store={store}>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </GoogleOAuthProvider>
+    </Provider>
   </StrictMode>
 )

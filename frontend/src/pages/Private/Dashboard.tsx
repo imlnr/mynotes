@@ -1,14 +1,19 @@
 import { SidebarWrapper } from "@/components/sidebar-wrapper"
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        navigate('/dashboard/note/new', { replace: true });
+    }, [navigate]);
+
     return (
         <SidebarWrapper>
-            <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                <div className="aspect-video rounded-xl bg-muted/50" />
-                <div className="aspect-video rounded-xl bg-muted/50" />
-                <div className="aspect-video rounded-xl bg-muted/50" />
+            <div className="flex h-full items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-            <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
         </SidebarWrapper>
     )
 }

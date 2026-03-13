@@ -3,6 +3,7 @@ import Login from '../pages/Authentication/Login';
 import VerifyOtp from '../pages/Authentication/VerifyOtp';
 import LandingPage from '../pages/Public/LandingPage';
 import Dashboard from '../pages/Private/Dashboard';
+import NoteEditor from '../pages/Private/NoteEditor';
 
 const Signup = () => <div className="p-4" > Signup Page </div>;
 
@@ -20,4 +21,6 @@ export const publicRoutes: RouteConfig[] = [
 
 export const privateRoutes: RouteConfig[] = [
     { path: '/dashboard', component: Dashboard },
+    { path: '/dashboard/note/:id', component: NoteEditor },
+    { path: '/dashboard/note/new', component: NoteEditor },
 ];
