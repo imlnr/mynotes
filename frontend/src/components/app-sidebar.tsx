@@ -204,7 +204,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <TerminalIcon className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">MyNote</span>
+                  <span className="truncate font-medium">Notables</span>
                   <span className="truncate text-xs">Premium Editor</span>
                 </div>
               </a>

@@ -34,7 +34,7 @@ exports.sendOtp = async (req, res) => {
 
         await sendEmail({
             email,
-            subject: 'Your MyNote Login OTP',
+            subject: 'Your Notables Login OTP',
             message,
             html: htmlMessage
         });

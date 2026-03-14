@@ -12,7 +12,7 @@ export function Footer() {
                         rel="noreferrer"
                         className="font-medium underline underline-offset-4"
                     >
-                        MyNote
+                        Notables
                     </a>
                     . The source code is available on{" "}
                     <a

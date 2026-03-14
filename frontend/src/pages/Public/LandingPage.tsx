@@ -18,7 +18,7 @@ export default function LandingPage() {
                         </span>
                     </h1>
                     <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-balance leading-relaxed">
-                        MyNote is the lightning-fast, secure, and beautiful way to capture your ideas.
+                        Notables is the lightning-fast, secure, and beautiful way to capture your ideas.
                         Sign in seamlessly with Google or Email.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">

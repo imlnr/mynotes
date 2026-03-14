@@ -27,7 +27,7 @@ const sendEmail = async (options) => {
     }
 
     const mailOptions = {
-        from: 'MyNote App <noreply@mynote.test>',
+        from: 'Notables App <noreply@notables.test>',
         to: options.email,
         subject: options.subject,
         text: options.message,
