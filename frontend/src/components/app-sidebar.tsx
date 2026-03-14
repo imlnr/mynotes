@@ -104,20 +104,39 @@ const NoteItem = React.memo(({
   )
 })
 
-NoteItem.displayName = "NoteItem"
+import { CustomAlertDialog } from "@/components/custom-alert-dialog"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate()
+  const [noteToDelete, setNoteToDelete] = React.useState<string | null>(null)
   const { id: activeId } = useParams()
   const dispatch = useDispatch<AppDispatch>()
+
+  // State to trigger dialog
+  const handleDeleteTrigger = React.useCallback((id: string) => {
+    setNoteToDelete(id)
+  }, [])
+
+  const confirmDelete = React.useCallback(async () => {
+    if (!noteToDelete) return
+
+    try {
+      await dispatch(deleteNote(noteToDelete)).unwrap()
+      showToast.success("Note deleted")
+      navigate("/dashboard")
+    } catch (err) {
+      showToast.error("Failed to delete note")
+    } finally {
+      setNoteToDelete(null)
+    }
+  }, [dispatch, navigate, noteToDelete])
+
+  const { items: notes, status } = useSelector((state: RootState) => state.notes)
+  const loading = status === 'loading'
 
   // Get user from localStorage
   const userStr = localStorage.getItem('user')
   const user = userStr ? JSON.parse(userStr) : { name: "User", email: "user@example.com", avatar: "" }
-
-  // Select notes from Redux store
-  const { items: notes, status } = useSelector((state: RootState) => state.notes)
-  const loading = status === 'loading'
 
   // Local state for inline renaming
   const [editingId, setEditingId] = React.useState<string | null>(null)
@@ -158,17 +177,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     })
   }, [dispatch, notes])
 
-  const handleDelete = React.useCallback(async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this note?")) {
-      try {
-        await dispatch(deleteNote(id)).unwrap()
-        showToast.success("Note deleted")
-        navigate("/dashboard")
-      } catch (err) {
-        showToast.error("Failed to delete note")
-      }
-    }
-  }, [dispatch, navigate])
 
   const handleArchive = React.useCallback(async (id: string) => {
     try {
@@ -251,7 +259,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           onRenameSubmit={handleRenameSubmit}
                           onRenameChange={setTempTitle}
                           onRenameCancel={() => setEditingId(null)}
-                          onDelete={handleDelete}
+                          onDelete={handleDeleteTrigger}
                           onArchive={handleArchive}
                           onShare={handleShare}
                         />
@@ -267,6 +275,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <NavUser user={user} />
       </SidebarFooter>
+      <CustomAlertDialog
+        open={!!noteToDelete}
+        onOpenChange={(open) => !open && setNoteToDelete(null)}
+        title="Delete Note"
+        description="Are you sure you want to delete this note? This action cannot be undone."
+        action={{
+          text: "Delete",
+          variant: "destructive",
+          onClick: confirmDelete,
+        }}
+      />
     </Sidebar>
   )
 }

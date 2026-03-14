@@ -13,9 +13,11 @@ import { createNote, updateNote, fetchNoteById, setCurrentNote, deleteNote } fro
 import { ActionDropdown } from "@/components/action-dropdown";
 import { ActionIcons } from "@/utils/action-icons";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CustomAlertDialog } from "@/components/custom-alert-dialog";
 import { useTheme } from "@/components/theme-provider";
 
 export default function NoteEditor() {
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { theme } = useTheme();
     const { id: routeId } = useParams();
     const id = routeId || "new";
@@ -44,19 +46,19 @@ export default function NoteEditor() {
             label: "Delete",
             icon: ActionIcons.Delete,
             variant: "destructive" as const,
-            onClick: async () => {
-                if (window.confirm("Are you sure you want to delete this note?")) {
-                    try {
-                        await dispatch(deleteNote(id)).unwrap();
-                        showToast.success("Note deleted");
-                        navigate("/dashboard");
-                    } catch (err) {
-                        showToast.error("Failed to delete note");
-                    }
-                }
-            }
+            onClick: () => setIsDeleteDialogOpen(true)
         },
     ];
+
+    const handleDelete = async () => {
+        try {
+            await dispatch(deleteNote(id)).unwrap();
+            showToast.success("Note deleted");
+            navigate("/dashboard");
+        } catch (err) {
+            showToast.error("Failed to delete note");
+        }
+    };
 
     // Refs to keep track of the latest state for the debounced save function
     const titleRef = useRef(title);
@@ -260,6 +262,17 @@ export default function NoteEditor() {
                     autoFocus
                 />
             </div>
+            <CustomAlertDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title="Delete Note"
+                description="Are you sure you want to delete this note? This action cannot be undone."
+                action={{
+                    text: "Delete",
+                    variant: "destructive",
+                    onClick: handleDelete,
+                }}
+            />
         </div>
     );
 }
