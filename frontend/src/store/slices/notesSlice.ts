@@ -49,12 +49,35 @@ export const updateNote = createAsyncThunk(
     }
 );
 
+export const deleteNote = createAsyncThunk(
+    'notes/deleteNote',
+    async (id: string) => {
+        await NoteService.deleteNote(id);
+        return id;
+    }
+);
+
+export const archiveNote = createAsyncThunk(
+    'notes/archiveNote',
+    async (id: string) => {
+        // Mocking archive by just showing a toast or updating a field if backend supports it
+        // For now let's just return the id
+        return id;
+    }
+);
+
 const notesSlice = createSlice({
     name: 'notes',
     initialState,
     reducers: {
         setCurrentNote: (state, action: PayloadAction<Note | null>) => {
             state.currentNote = action.payload;
+        },
+        clearNotes: (state) => {
+            state.items = [];
+            state.currentNote = null;
+            state.status = 'idle';
+            state.error = null;
         },
     },
     extraReducers: (builder) => {
@@ -85,9 +108,15 @@ const notesSlice = createSlice({
                 if (state.currentNote?._id === action.payload._id) {
                     state.currentNote = action.payload;
                 }
+            })
+            .addCase(deleteNote.fulfilled, (state, action) => {
+                state.items = state.items.filter((n) => n._id !== action.payload);
+                if (state.currentNote?._id === action.payload) {
+                    state.currentNote = null;
+                }
             });
     },
 });
 
-export const { setCurrentNote } = notesSlice.actions;
+export const { setCurrentNote, clearNotes } = notesSlice.actions;
 export default notesSlice.reducer;

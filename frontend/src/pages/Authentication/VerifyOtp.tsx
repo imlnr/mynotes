@@ -38,7 +38,7 @@ export default function VerifyOtp() {
 
         setLoading(true)
         try {
-            const res = await api.post('/api/auth/verify-otp', { email, otp })
+            const res = await api.post('/auth/verify-otp', { email, otp })
 
             if (res.status === 200) {
                 showToast.success('Successfully logged in!')

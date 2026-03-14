@@ -1,6 +1,6 @@
-import { SidebarWrapper } from "@/components/sidebar-wrapper"
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -10,10 +10,13 @@ export default function Dashboard() {
     }, [navigate]);
 
     return (
-        <SidebarWrapper>
-            <div className="flex h-full items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full pt-8 h-full">
+            <Skeleton className="h-12 w-3/4" />
+            <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
             </div>
-        </SidebarWrapper>
+        </div>
     )
 }

@@ -19,6 +19,8 @@ exports.createNote = async (req, res) => {
 };
 
 exports.getAllNotes = async (req, res) => {
+
+    console.log(req.user);
     try {
         const notes = await Note.find({ user: req.user.id }).sort('-updatedAt');
 

@@ -33,7 +33,7 @@ export function LoginForm({
 
     setLoading(true)
     try {
-      const res = await api.post('/api/auth/send-otp', { email })
+      const res = await api.post('/auth/send-otp', { email })
       if (res.status === 200) {
         showToast.success(res.data.message || 'OTP sent to your email!')
         navigate('/verify-otp', { state: { email } })
@@ -61,7 +61,7 @@ export function LoginForm({
           name: userInfo.name || '',
         }
 
-        const res = await api.post('/api/auth/google', reqBody)
+        const res = await api.post('/auth/google', reqBody)
 
         if (res.status === 200) {
           showToast.success('Successfully logged in with Google!')

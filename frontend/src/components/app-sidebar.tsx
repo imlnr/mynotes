@@ -1,10 +1,13 @@
 import * as React from "react"
 import { PlusIcon, HistoryIcon, ChevronRightIcon, TerminalIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import type { AppDispatch, RootState } from "@/store"
-import { fetchNotes } from "@/store/slices/notesSlice"
+import { fetchNotes, updateNote, deleteNote, archiveNote } from "@/store/slices/notesSlice"
+import { ActionDropdown } from "@/components/action-dropdown"
+import { ActionIcons } from "@/utils/action-icons"
+import { showToast } from "@/utils/toastUtils"
 import {
   Collapsible,
   CollapsibleContent,
@@ -25,27 +28,162 @@ import {
   SidebarGroupLabel,
 } from "@/components/ui/sidebar"
 import { NavUser } from "@/components/nav-user"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
 
-const data = {
-  user: {
-    name: "User",
-    email: "user@example.com",
-    avatar: "",
-  },
-}
+// Memoized Note Item to prevent re-renders when other notes or the editor state changes
+const NoteItem = React.memo(({
+  note,
+  isActive,
+  isEditing,
+  tempTitle,
+  onRenameStart,
+  onRenameSubmit,
+  onRenameChange,
+  onRenameCancel,
+  onDelete,
+  onArchive,
+  onShare
+}: {
+  note: any,
+  isActive: boolean,
+  isEditing: boolean,
+  tempTitle: string,
+  onRenameStart: (id: string, title: string) => void,
+  onRenameSubmit: (id: string) => void,
+  onRenameChange: (val: string) => void,
+  onRenameCancel: () => void,
+  onDelete: (id: string) => void,
+  onArchive: (id: string) => void,
+  onShare: (id: string) => void
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <SidebarMenuSubItem className="group/item relative">
+      {isEditing ? (
+        <div className="px-2 py-1">
+          <Input
+            autoFocus
+            className="h-7 text-xs"
+            value={tempTitle}
+            onChange={(e) => onRenameChange(e.target.value)}
+            onBlur={() => onRenameSubmit(note._id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onRenameSubmit(note._id)
+              if (e.key === "Escape") onRenameCancel()
+            }}
+          />
+        </div>
+      ) : (
+        <SidebarMenuSubButton
+          asChild
+          isActive={isActive}
+          onDoubleClick={() => onRenameStart(note._id, note.title)}
+          className="group-hover/item:bg-sidebar-accent group-hover/item:text-sidebar-accent-foreground"
+        >
+          <Link to={`/dashboard/note/${note._id}`} className="flex items-center justify-between pr-8">
+            <span className="truncate">{note.title || "Untitled"}</span>
+          </Link>
+        </SidebarMenuSubButton>
+      )}
+      <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity z-10">
+        <ActionDropdown
+          actions={[
+            { label: "Open", icon: ActionIcons.Open, onClick: () => navigate(`/dashboard/note/${note._id}`) },
+            { label: "Rename", icon: ActionIcons.Rename, onClick: () => onRenameStart(note._id, note.title) },
+            { label: "Share", icon: ActionIcons.Share, onClick: () => onShare(note._id) },
+            { label: "Publish", icon: ActionIcons.Publish, onClick: () => showToast.success("Note published!") },
+            { label: "Archive", icon: ActionIcons.Archive, onClick: () => onArchive(note._id) },
+            { label: "Delete", icon: ActionIcons.Delete, variant: "destructive", onClick: () => onDelete(note._id) },
+          ]}
+          triggerClassName="h-6 w-6 hover:bg-sidebar-accent-foreground/10 cursor-pointer"
+        />
+      </div>
+    </SidebarMenuSubItem>
+  )
+})
+
+NoteItem.displayName = "NoteItem"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate()
+  const { id: activeId } = useParams()
   const dispatch = useDispatch<AppDispatch>()
+
+  // Get user from localStorage
+  const userStr = localStorage.getItem('user')
+  const user = userStr ? JSON.parse(userStr) : { name: "User", email: "user@example.com", avatar: "" }
 
   // Select notes from Redux store
   const { items: notes, status } = useSelector((state: RootState) => state.notes)
   const loading = status === 'loading'
 
+  // Local state for inline renaming
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const [tempTitle, setTempTitle] = React.useState("")
+
   React.useEffect(() => {
-    // Fetch notes globally if not loaded (or always refresh if needed)
-    dispatch(fetchNotes())
+    const token = localStorage.getItem('token')
+    // Fetch notes globally only if authenticated and not already loading/loaded
+    if (token && status === 'idle') {
+      console.log("[AppSidebar] Authenticated & Idle: Fetching notes")
+      dispatch(fetchNotes())
+    }
+  }, [dispatch, status])
+
+  const handleRenameStart = React.useCallback((id: string, currentTitle: string) => {
+    setEditingId(id)
+    setTempTitle(currentTitle || "Untitled")
+  }, [])
+
+  const handleRenameSubmit = React.useCallback(async (id: string) => {
+    // We use a functional update or closure to get the latest tempTitle if needed
+    // but here we can just use the state because it's stable enough for this callback
+    setTempTitle(prev => {
+      if (!prev.trim()) {
+        setEditingId(null)
+        return prev
+      }
+
+      const note = notes.find(n => n._id === id)
+      if (note) {
+        dispatch(updateNote({ id, title: prev, content: note.content }))
+          .unwrap()
+          .then(() => showToast.success("Note renamed"))
+          .catch(() => showToast.error("Failed to rename note"))
+      }
+      setEditingId(null)
+      return prev
+    })
+  }, [dispatch, notes])
+
+  const handleDelete = React.useCallback(async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this note?")) {
+      try {
+        await dispatch(deleteNote(id)).unwrap()
+        showToast.success("Note deleted")
+        navigate("/dashboard")
+      } catch (err) {
+        showToast.error("Failed to delete note")
+      }
+    }
+  }, [dispatch, navigate])
+
+  const handleArchive = React.useCallback(async (id: string) => {
+    try {
+      await dispatch(archiveNote(id)).unwrap()
+      showToast.info("Note archived (Mock)")
+    } catch (err) {
+      showToast.error("Failed to archive note")
+    }
   }, [dispatch])
+
+  const handleShare = React.useCallback((id: string) => {
+    const url = `${window.location.origin}/dashboard/note/${id}`
+    navigator.clipboard.writeText(url)
+    showToast.info("Link copied to clipboard!")
+  }, [])
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -92,22 +230,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {loading && notes.length === 0 ? (
-                      <SidebarMenuSubItem>
-                        <span className="px-2 py-1 text-xs text-muted-foreground animate-pulse">Loading...</span>
-                      </SidebarMenuSubItem>
+                      <div className="px-2 py-1 space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-4 w-full" />
+                      </div>
                     ) : notes.length === 0 ? (
                       <SidebarMenuSubItem>
                         <span className="px-2 py-1 text-xs text-muted-foreground">No notes yet</span>
                       </SidebarMenuSubItem>
                     ) : (
                       notes.map((note) => (
-                        <SidebarMenuSubItem key={note._id}>
-                          <SidebarMenuSubButton asChild>
-                            <Link to={`/dashboard/note/${note._id}`}>
-                              <span>{note.title || "Untitled"}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
+                        <NoteItem
+                          key={note._id}
+                          note={note}
+                          isActive={activeId === note._id}
+                          isEditing={editingId === note._id}
+                          tempTitle={tempTitle}
+                          onRenameStart={handleRenameStart}
+                          onRenameSubmit={handleRenameSubmit}
+                          onRenameChange={setTempTitle}
+                          onRenameCancel={() => setEditingId(null)}
+                          onDelete={handleDelete}
+                          onArchive={handleArchive}
+                          onShare={handleShare}
+                        />
                       ))
                     )}
                   </SidebarMenuSub>
@@ -118,7 +265,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )

@@ -3,9 +3,10 @@ import { useRef, useEffect, useMemo } from 'react';
 export function debounce<T extends (...args: any[]) => any>(
     func: T,
     wait: number
-): (...args: Parameters<T>) => void {
+) {
     let timeout: ReturnType<typeof setTimeout> | null = null;
-    return function (...args: Parameters<T>) {
+
+    const debounced = function (...args: Parameters<T>) {
         console.log(`[Debounce] Called. Setting timeout for ${wait}ms.`);
         if (timeout) clearTimeout(timeout);
         timeout = setTimeout(() => {
@@ -13,6 +14,16 @@ export function debounce<T extends (...args: any[]) => any>(
             func(...args);
         }, wait);
     };
+
+    debounced.cancel = () => {
+        if (timeout) {
+            console.log("[Debounce] Cancelled.");
+            clearTimeout(timeout);
+            timeout = null;
+        }
+    };
+
+    return debounced;
 }
 
 export function useDebounceCallback<T extends (...args: any[]) => any>(
@@ -25,8 +36,6 @@ export function useDebounceCallback<T extends (...args: any[]) => any>(
         funcRef.current = func;
     }, [func]);
 
-    // useMemo ensures that debounce is evaluated EXACTLY ONCE upon initialization,
-    // guaranteeing the closure and its `timeout` variable are never accidentally shadowed or recreated.
     const debouncedFunc = useMemo(
         () => debounce((...args: Parameters<T>) => {
             console.log("[useDebounceCallback] Executing wrapped function...");
@@ -38,6 +47,12 @@ export function useDebounceCallback<T extends (...args: any[]) => any>(
         }, wait),
         [wait]
     );
+
+    useEffect(() => {
+        return () => {
+            debouncedFunc.cancel();
+        };
+    }, [debouncedFunc]);
 
     return debouncedFunc;
 }
