@@ -1,4 +1,9 @@
 const apiKeyMiddleware = (req, res, next) => {
+    // Allow preflight OPTIONS requests without API key
+    if (req.method === 'OPTIONS') {
+        return next();
+    }
+
     const apiKey = req.headers['x-api-key'];
     const validApiKey = process.env.X_API_KEY;
 
