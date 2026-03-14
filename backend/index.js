@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const connectDB = require('./src/helpers/db');
 const authRoutes = require('./src/routes/authRoutes');
@@ -41,8 +42,8 @@ const swaggerOptions = {
         security: [{ apiKeyAuth: [] }]
     },
     apis: [
-        './index.js',
-        './src/routes/*.js'
+        path.join(__dirname, 'index.js'),
+        path.join(__dirname, 'src', 'routes', '*.js')
     ],
 };
 
