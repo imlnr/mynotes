@@ -131,7 +131,7 @@ export function LoginForm({
           <div className="relative hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-10 text-white">
             <div className="absolute inset-0 bg-black/20" />
             <div className="relative z-10 space-y-4 text-center">
-              <h2 className="text-3xl font-bold tracking-tighter">Notables</h2>
+              <h2 className="text-3xl font-bold tracking-tighter">Docables</h2>
               <p className="text-lg font-medium text-white/80">
                 Secure, seamless, and lightning fast notes.
               </p>

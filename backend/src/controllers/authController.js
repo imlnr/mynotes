@@ -34,7 +34,7 @@ exports.sendOtp = async (req, res) => {
 
         await sendEmail({
             email,
-            subject: 'Your Notables Login OTP',
+            subject: 'Your Docables Login OTP',
             message,
             html: htmlMessage
         });

@@ -16,9 +16,9 @@ const swaggerOptions = {
     swaggerDefinition: {
         openapi: '3.0.0',
         info: {
-            title: 'Notables API',
+            title: 'Docables API',
             version: '1.0.0',
-            description: 'API documentation for Notables application',
+            description: 'API documentation for Docables application',
             contact: {
                 name: 'Developer'
             },
@@ -76,7 +76,7 @@ app.get('/', (req, res) => {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Notables API | Secure & Fast</title>
+            <title>Docables API | Secure & Fast</title>
             <style>
                 :root {
                     --bg: #09090b;
@@ -158,7 +158,7 @@ app.get('/', (req, res) => {
         </head>
         <body>
             <div class="container">
-                <h1>Notables</h1>
+                <h1>Docables</h1>
                 <p class="tagline">Capture your thoughts, secure and fast.</p>
                 <p>Advanced backend infrastructure powering your notes with enterprise-grade security and reliability.</p>
                 <a href="/api-docs" class="btn">Explore API Docs</a>
