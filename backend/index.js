@@ -71,7 +71,12 @@ app.use((req, res, next) => {
 // Swagger UI - Moved after basic middleware but before any custom logic
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
     explorer: true,
-    customSiteTitle: "Docables API Documentation"
+    customSiteTitle: "Docables API Documentation",
+    customCssUrl: "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.18.3/swagger-ui.css",
+    customJs: [
+        "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.18.3/swagger-ui-bundle.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.18.3/swagger-ui-standalone-preset.js"
+    ]
 }));
 
 /**
