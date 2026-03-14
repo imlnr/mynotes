@@ -22,7 +22,7 @@ const swaggerOptions = {
             contact: {
                 name: 'Developer'
             },
-            servers: [{ urlBase: process.env.VITE_API_URL || 'http://localhost:5000' }]
+            servers: [{ url: process.env.VITE_API_URL || 'http://localhost:5000' }]
         },
         components: {
             securitySchemes: {
@@ -40,11 +40,13 @@ const swaggerOptions = {
         },
         security: [{ apiKeyAuth: [] }]
     },
-    apis: ['./index.js', './src/routes/*.js'],
+    apis: [
+        './index.js',
+        './src/routes/*.js'
+    ],
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Connect to database
 connectDB();
@@ -52,13 +54,19 @@ connectDB();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Request logger
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
     next();
 });
-app.use(express.urlencoded({ extended: true }));
+
+// Swagger UI - Moved after basic middleware but before any custom logic
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
+    explorer: true,
+    customSiteTitle: "Docables API Documentation"
+}));
 
 /**
  * @swagger
@@ -161,7 +169,7 @@ app.get('/', (req, res) => {
                 <h1>Docables</h1>
                 <p class="tagline">Capture your thoughts, secure and fast.</p>
                 <p>Advanced backend infrastructure powering your notes with enterprise-grade security and reliability.</p>
-                <a href="/api-docs" class="btn">Explore API Docs</a>
+                <a href="/api-docs/" class="btn">Explore API Docs</a>
                 <div class="status">
                     <span class="dot"></span>
                     <span>System Operational</span>
