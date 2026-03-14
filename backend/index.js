@@ -52,19 +52,19 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 // Connect to database
 connectDB();
 
-// Middleware
+// Middleware (CORS must be first to handle preflights)
 app.use(cors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
-    credentials: true
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key']
 }));
+app.options('*', cors()); // Enable pre-flight for all routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Request logger
 app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
+    console.log(`Incoming Request: ${req.method} ${req.url}`);
     next();
 });
 
