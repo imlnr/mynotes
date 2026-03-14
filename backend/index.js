@@ -52,31 +52,21 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 // Connect to database
 connectDB();
 
-// Middleware (CORS must be first to handle preflights)
-app.use(cors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key']
-}));
-app.options('*', cors()); // Enable pre-flight for all routes
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Request logger
 app.use((req, res, next) => {
-    console.log(`Incoming Request: ${req.method} ${req.url}`);
+    console.log(`${req.method} ${req.url}`);
     next();
 });
 
 // Swagger UI - Moved after basic middleware but before any custom logic
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
     explorer: true,
-    customSiteTitle: "Docables API Documentation",
-    customCssUrl: "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.18.3/swagger-ui.css",
-    customJs: [
-        "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.18.3/swagger-ui-bundle.js",
-        "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.18.3/swagger-ui-standalone-preset.js"
-    ]
+    customSiteTitle: "Docables API Documentation"
 }));
 
 /**
