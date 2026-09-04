@@ -1,37 +1,45 @@
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { PublicLayout } from "@/components/public-layout";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAppSelector } from "@/store";
 
 export default function LandingPage() {
     const navigate = useNavigate();
+    const isAuthenticated = Boolean(useAppSelector((state) => state.auth.token));
 
     return (
-        <div className="flex flex-col min-h-screen w-full">
-            <Navbar />
-            <main className="flex-1 flex flex-col items-center justify-center text-center px-4 md:px-6 py-12 md:py-24 lg:py-32 xl:py-48 bg-gradient-to-b from-background to-muted/50">
-                <div className="space-y-4 max-w-3xl">
+        <PublicLayout>
+            <div className="flex flex-col items-center justify-center bg-gradient-to-b from-background to-muted/50 px-4 py-12 text-center md:px-6 md:py-24 lg:py-32 xl:py-48">
+                <div className="max-w-3xl space-y-4">
                     <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
                         Your thoughts, <br className="hidden sm:inline" />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                        <span className="bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
                             organized beautifully.
                         </span>
                     </h1>
-                    <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-balance leading-relaxed">
-                        Docables is the lightning-fast, secure, and beautiful way to capture your ideas.
-                        Sign in seamlessly with Google or Email.
+                    <p className="mx-auto max-w-[700px] text-muted-foreground leading-relaxed md:text-xl/relaxed lg:text-balance">
+                        Docables is a fast, private notes workspace with a block editor,
+                        email or Google sign-in, and public share links when you want them.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-                        <Button size="lg" className="h-12 px-8 text-base" onClick={() => navigate('/login')}>
-                            Start Taking Notes
+                    <div className="flex flex-col justify-center gap-4 pt-8 sm:flex-row">
+                        <Button
+                            size="lg"
+                            className="h-12 px-8 text-base"
+                            onClick={() => navigate(isAuthenticated ? "/dashboard" : "/login")}
+                        >
+                            {isAuthenticated ? "Open Dashboard" : "Start Taking Notes"}
                         </Button>
-                        <Button size="lg" variant="outline" className="h-12 px-8 text-base">
+                        <Button
+                            size="lg"
+                            variant="outline"
+                            className="h-12 px-8 text-base"
+                            onClick={() => navigate("/features")}
+                        >
                             Learn More
                         </Button>
                     </div>
                 </div>
-            </main>
-            <Footer />
-        </div>
+            </div>
+        </PublicLayout>
     );
 }

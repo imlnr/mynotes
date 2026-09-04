@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -22,6 +23,7 @@ interface CustomAlertDialogProps {
     description: string
     cancel?: ActionConfig
     action?: ActionConfig
+    children?: ReactNode
 }
 
 export function CustomAlertDialog({
@@ -31,14 +33,16 @@ export function CustomAlertDialog({
     description,
     cancel,
     action,
+    children,
 }: CustomAlertDialogProps) {
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent>
+            <AlertDialogContent className="sm:max-w-md">
                 <AlertDialogHeader>
                     <AlertDialogTitle>{title}</AlertDialogTitle>
                     <AlertDialogDescription>{description}</AlertDialogDescription>
                 </AlertDialogHeader>
+                {children}
                 <AlertDialogFooter>
                     <AlertDialogCancel
                         onClick={cancel?.onClick}
@@ -46,12 +50,14 @@ export function CustomAlertDialog({
                     >
                         {cancel?.text || "Cancel"}
                     </AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={action?.onClick}
-                        variant={action?.variant}
-                    >
-                        {action?.text || "Continue"}
-                    </AlertDialogAction>
+                    {action && (
+                        <AlertDialogAction
+                            onClick={action.onClick}
+                            variant={action.variant}
+                        >
+                            {action.text}
+                        </AlertDialogAction>
+                    )}
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

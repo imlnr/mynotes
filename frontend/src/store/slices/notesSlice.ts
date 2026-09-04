@@ -1,13 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import NoteService from '../../utils/noteService';
-
-export interface Note {
-    _id: string;
-    title: string;
-    content: any[];
-    updatedAt: string;
-    createdAt: string;
-}
+import type { Note, NoteUpdate } from '@/types/note';
 
 interface NotesState {
     items: Note[];
@@ -24,7 +17,7 @@ const initialState: NotesState = {
 };
 
 export const fetchNotes = createAsyncThunk('notes/fetchNotes', async () => {
-    const response = await NoteService.getAllNotes();
+    const response = await NoteService.getAllNotes('all');
     return response.data.notes;
 });
 
@@ -35,7 +28,7 @@ export const fetchNoteById = createAsyncThunk('notes/fetchNoteById', async (id: 
 
 export const createNote = createAsyncThunk(
     'notes/createNote',
-    async (noteData: { title: string; content: any[] }) => {
+    async (noteData: { title: string; content: unknown[] }) => {
         const response = await NoteService.createNote(noteData);
         return response.data.note;
     }
@@ -43,8 +36,8 @@ export const createNote = createAsyncThunk(
 
 export const updateNote = createAsyncThunk(
     'notes/updateNote',
-    async ({ id, title, content }: { id: string; title: string; content: any[] }) => {
-        const response = await NoteService.updateNote(id, { title, content });
+    async ({ id, ...updates }: { id: string } & NoteUpdate) => {
+        const response = await NoteService.updateNote(id, updates);
         return response.data.note;
     }
 );
@@ -59,12 +52,23 @@ export const deleteNote = createAsyncThunk(
 
 export const archiveNote = createAsyncThunk(
     'notes/archiveNote',
-    async (id: string) => {
-        // Mocking archive by just showing a toast or updating a field if backend supports it
-        // For now let's just return the id
-        return id;
+    async ({ id, archived }: { id: string; archived: boolean }) => {
+        const response = await NoteService.updateNote(id, { isArchived: archived });
+        return response.data.note;
     }
 );
+
+const upsertNote = (state: NotesState, note: Note) => {
+    const index = state.items.findIndex((n) => n._id === note._id);
+    if (index !== -1) {
+        state.items[index] = note;
+    } else {
+        state.items.unshift(note);
+    }
+    if (state.currentNote?._id === note._id) {
+        state.currentNote = note;
+    }
+};
 
 const notesSlice = createSlice({
     name: 'notes',
@@ -95,19 +99,17 @@ const notesSlice = createSlice({
             })
             .addCase(fetchNoteById.fulfilled, (state, action) => {
                 state.currentNote = action.payload;
+                upsertNote(state, action.payload);
             })
             .addCase(createNote.fulfilled, (state, action) => {
                 state.items.unshift(action.payload);
                 state.currentNote = action.payload;
             })
             .addCase(updateNote.fulfilled, (state, action) => {
-                const index = state.items.findIndex((n) => n._id === action.payload._id);
-                if (index !== -1) {
-                    state.items[index] = action.payload;
-                }
-                if (state.currentNote?._id === action.payload._id) {
-                    state.currentNote = action.payload;
-                }
+                upsertNote(state, action.payload);
+            })
+            .addCase(archiveNote.fulfilled, (state, action) => {
+                upsertNote(state, action.payload);
             })
             .addCase(deleteNote.fulfilled, (state, action) => {
                 state.items = state.items.filter((n) => n._id !== action.payload);

@@ -1,8 +1,10 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useGoogleLogin } from "@react-oauth/google"
 import { showToast } from "@/utils/toastUtils"
-import api from "@/utils/axios"
+import AuthService from "@/utils/authService"
+import { useAppDispatch } from "@/store"
+import { setCredentials } from "@/store/slices/authSlice"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -23,24 +25,23 @@ export function LoginForm({
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) {
-      showToast.error('Please enter an email')
+      showToast.error("Please enter an email")
       return
     }
 
     setLoading(true)
     try {
-      const res = await api.post('/auth/send-otp', { email })
-      if (res.status === 200) {
-        showToast.success(res.data.message || 'OTP sent to your email!')
-        navigate('/verify-otp', { state: { email } })
-      }
-    } catch (err: any) {
-      console.error(err)
-      showToast.error(err.response?.data?.message || 'Failed to send OTP or Network Error')
+      const res = await AuthService.sendOtp(email)
+      showToast.success(res.message || "OTP sent to your email!")
+      navigate("/verify-otp", { state: { email } })
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message
+      showToast.error(message || "Failed to send OTP or Network Error")
     } finally {
       setLoading(false)
     }
@@ -50,34 +51,19 @@ export function LoginForm({
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true)
-        // Fetch user profile from google
-        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        })
-        const userInfo = await userInfoRes.json()
-
-        const reqBody = {
-          email: userInfo.email,
-          name: userInfo.name || '',
-        }
-
-        const res = await api.post('/auth/google', reqBody)
-
-        if (res.status === 200) {
-          showToast.success('Successfully logged in with Google!')
-          localStorage.setItem('token', res.data.token)
-          localStorage.setItem('user', JSON.stringify(res.data.user))
-          navigate('/')
-        }
-      } catch (err: any) {
-        console.error(err)
-        showToast.error(err.response?.data?.message || 'Google Login Failed on Server or Network error')
+        const res = await AuthService.googleLogin(tokenResponse.access_token)
+        dispatch(setCredentials({ token: res.token, user: res.user }))
+        showToast.success("Successfully logged in with Google!")
+        navigate("/dashboard")
+      } catch (err: unknown) {
+        const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        showToast.error(message || "Google Login Failed on Server or Network error")
       } finally {
         setLoading(false)
       }
     },
     onError: () => {
-      showToast.error('Google Sign In Failed')
+      showToast.error("Google Sign In Failed")
     }
   })
 
@@ -88,9 +74,9 @@ export function LoginForm({
           <form onSubmit={handleSendOtp} className="p-6 md:p-8">
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
+                <h1 className="text-2xl font-bold">Welcome to Docables</h1>
                 <p className="text-balance text-muted-foreground">
-                  Login to your account
+                  Enter your email to log in or create an account
                 </p>
               </div>
               <Field>
@@ -106,13 +92,13 @@ export function LoginForm({
               </Field>
               <Field>
                 <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? 'Sending OTP...' : 'Login with Email'}
+                  {loading ? "Sending OTP..." : "Continue with Email"}
                 </Button>
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Or continue with
               </FieldSeparator>
-              <Field className="flex justify-center w-full mt-4">
+              <Field className="mt-4 flex w-full justify-center">
                 <Button variant="outline" type="button" onClick={() => loginWithGoogle()} disabled={loading} className="w-full">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
                     <path
@@ -124,24 +110,24 @@ export function LoginForm({
                 </Button>
               </Field>
               <FieldDescription className="text-center">
-                Don&apos;t have an account? <a href="#">Sign up</a>
+                New here? Continuing with email creates your account automatically.
               </FieldDescription>
             </FieldGroup>
           </form>
-          <div className="relative hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-10 text-white">
+          <div className="relative hidden items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-10 text-white md:flex">
             <div className="absolute inset-0 bg-black/20" />
             <div className="relative z-10 space-y-4 text-center">
               <h2 className="text-3xl font-bold tracking-tighter">Docables</h2>
               <p className="text-lg font-medium text-white/80">
-                Secure, seamless, and lightning fast notes.
+                Private notes, public links when you want them.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        By continuing, you agree to our{" "}
+        <Link to="/about" className="underline underline-offset-4">terms of use</Link>.
       </FieldDescription>
     </div>
   )

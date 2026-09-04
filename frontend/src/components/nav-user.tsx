@@ -1,5 +1,3 @@
-"use client"
-
 import {
   Avatar,
   AvatarFallback,
@@ -22,10 +20,6 @@ import {
 } from "@/components/ui/sidebar"
 import {
   ChevronsUpDownIcon,
-  SparklesIcon,
-  BadgeCheckIcon,
-  CreditCardIcon,
-  BellIcon,
   LogOutIcon,
   SunIcon,
   MoonIcon
@@ -33,8 +27,9 @@ import {
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useNavigate } from "react-router-dom"
-import { useDispatch } from "react-redux"
+import { useAppDispatch } from "@/store"
 import { clearNotes } from "@/store/slices/notesSlice"
+import { logout } from "@/store/slices/authSlice"
 
 export function NavUser({
   user,
@@ -48,14 +43,12 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
 
-  // Handle system theme for the switch state
   const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
+    dispatch(logout())
     dispatch(clearNotes())
     navigate("/login")
   }
@@ -80,7 +73,7 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{getInitials(user.name || user.email)}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name || "User"}</span>
@@ -99,7 +92,7 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">{getInitials(user.name || user.email)}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name || "User"}</span>
@@ -121,28 +114,6 @@ export function NavUser({
                   onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
                   onClick={(e) => e.stopPropagation()}
                 />
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <SparklesIcon />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheckIcon />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCardIcon />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon />
-                Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
