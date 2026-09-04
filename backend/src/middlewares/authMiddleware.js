@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { verifyToken } = require('../utils/jwt');
 
 exports.protect = async (req, res, next) => {
     try {
@@ -9,14 +9,20 @@ exports.protect = async (req, res, next) => {
         }
 
         if (!token) {
-            return res.status(401).json({ status: 'fail', message: 'You are not logged in! Please log in to get access.' });
+            return res.status(401).json({
+                status: 'fail',
+                message: 'You are not logged in! Please log in to get access.',
+            });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretdevelopmentsignature');
-
+        const decoded = verifyToken(token);
         const currentUser = await User.findById(decoded.id);
+
         if (!currentUser) {
-            return res.status(401).json({ status: 'fail', message: 'The user belonging to this token no longer exists.' });
+            return res.status(401).json({
+                status: 'fail',
+                message: 'The user belonging to this token no longer exists.',
+            });
         }
 
         req.user = currentUser;

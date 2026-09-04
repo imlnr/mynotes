@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+import { useLocation, Link } from "react-router-dom"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
     Breadcrumb,
@@ -13,8 +15,16 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { useAppSelector } from "@/store"
 
-export function SidebarWrapper({ children }: { children: React.ReactNode }) {
+export function SidebarWrapper({ children }: { children: ReactNode }) {
+    const location = useLocation()
+    const { currentNote, items } = useAppSelector((state) => state.notes)
+    const noteId = location.pathname.split("/dashboard/note/")[1]
+    const isNew = noteId === "new" || location.pathname.endsWith("/note/new")
+    const note = items.find((n) => n._id === noteId) || currentNote
+    const isEditor = location.pathname.includes("/dashboard/note/")
+
     return (
         <SidebarProvider>
             <AppSidebar />
@@ -24,15 +34,21 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     <Breadcrumb>
                         <BreadcrumbList>
-                            <BreadcrumbItem className="hidden md:block">
-                                <BreadcrumbLink href="#">
-                                    Building Your Application
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link to="/dashboard">Notes</Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator className="hidden md:block" />
-                            <BreadcrumbItem>
-                                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                            </BreadcrumbItem>
+                            {isEditor && (
+                                <>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        <BreadcrumbPage>
+                                            {isNew ? "New note" : (note?.title || "Untitled")}
+                                        </BreadcrumbPage>
+                                    </BreadcrumbItem>
+                                </>
+                            )}
                         </BreadcrumbList>
                     </Breadcrumb>
                 </header>

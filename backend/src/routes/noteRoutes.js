@@ -1,20 +1,46 @@
 const express = require('express');
 const noteController = require('../controllers/noteController');
-const authMiddleware = require('../middlewares/authMiddleware'); // Fixed path pluralization
+const authMiddleware = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-// All note routes should be protected
+/**
+ * @swagger
+ * /api/notes/shared/{shareId}:
+ *   get:
+ *     summary: Get a published note by share id (no login required)
+ *     tags: [Notes]
+ *     parameters:
+ *       - in: path
+ *         name: shareId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Shared note data
+ *       404:
+ *         description: Shared note not found
+ */
+router.get('/shared/:shareId', noteController.getSharedNote);
+
 router.use(authMiddleware.protect);
 
 /**
  * @swagger
  * /api/notes:
  *   get:
- *     summary: Get all notes for the authenticated user
+ *     summary: Get notes for the authenticated user
  *     tags: [Notes]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: archived
+ *         schema:
+ *           type: string
+ *           enum: [true, false, all]
+ *         description: Filter by archive state. Defaults to active notes only.
  *     responses:
  *       200:
  *         description: List of notes
@@ -31,14 +57,11 @@ router.use(authMiddleware.protect);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - title
- *               - content
  *             properties:
  *               title:
  *                 type: string
  *               content:
- *                 type: string
+ *                 type: array
  *     responses:
  *       201:
  *         description: Note created successfully
@@ -68,7 +91,7 @@ router
  *       404:
  *         description: Note not found
  *   patch:
- *     summary: Update an existing note
+ *     summary: Update an existing note (partial)
  *     tags: [Notes]
  *     security:
  *       - bearerAuth: []
@@ -87,7 +110,11 @@ router
  *               title:
  *                 type: string
  *               content:
- *                 type: string
+ *                 type: array
+ *               isArchived:
+ *                 type: boolean
+ *               isPublished:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: Note updated

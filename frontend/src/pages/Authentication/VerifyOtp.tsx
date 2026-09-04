@@ -1,8 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-// import { Button } from '@/components/ui/button'
-// import { Card, CardContent } from '@/components/ui/card'
-
 import {
     Field,
     FieldGroup,
@@ -10,15 +7,18 @@ import {
 } from "@/components/ui/field"
 import { Input } from '@/components/ui/input'
 import { showToast } from '@/utils/toastUtils'
-import api from '@/utils/axios'
-import { Card, CardContent } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
+import AuthService from '@/utils/authService'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { useAppDispatch } from '@/store'
+import { setCredentials } from '@/store/slices/authSlice'
 
 export default function VerifyOtp() {
     const [otp, setOtp] = useState('')
     const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
     const location = useLocation()
+    const dispatch = useAppDispatch()
 
     const email = location.state?.email || ''
 
@@ -33,22 +33,18 @@ export default function VerifyOtp() {
         e.preventDefault()
         if (!otp) {
             showToast.error('Please enter the OTP')
-            return;
+            return
         }
 
         setLoading(true)
         try {
-            const res = await api.post('/auth/verify-otp', { email, otp })
-
-            if (res.status === 200) {
-                showToast.success('Successfully logged in!')
-                localStorage.setItem('token', res.data.token)
-                localStorage.setItem('user', JSON.stringify(res.data.user))
-                navigate('/')
-            }
-        } catch (err: any) {
-            console.error(err)
-            showToast.error(err.response?.data?.message || 'Invalid OTP or Network Error')
+            const res = await AuthService.verifyOtp(email, otp)
+            dispatch(setCredentials({ token: res.token, user: res.user }))
+            showToast.success('Successfully logged in!')
+            navigate('/dashboard')
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            showToast.error(message || 'Invalid OTP or Network Error')
         } finally {
             setLoading(false)
         }
@@ -61,7 +57,7 @@ export default function VerifyOtp() {
                     <CardContent className="grid p-0">
                         <form onSubmit={handleVerifyOtp} className="p-6 md:p-8">
                             <FieldGroup>
-                                <div className="flex flex-col items-center gap-2 text-center pb-4">
+                                <div className="flex flex-col items-center gap-2 pb-4 text-center">
                                     <h1 className="text-2xl font-bold">Verify OTP</h1>
                                     <p className="text-balance text-muted-foreground">
                                         Enter the 6-digit code sent to <br />
@@ -69,16 +65,16 @@ export default function VerifyOtp() {
                                     </p>
                                 </div>
                                 <Field>
-                                    <FieldLabel htmlFor="otp" className="text-center w-full">One-Time Password</FieldLabel>
+                                    <FieldLabel htmlFor="otp" className="w-full text-center">One-Time Password</FieldLabel>
                                     <Input
                                         id="otp"
                                         type="text"
                                         inputMode="numeric"
                                         maxLength={6}
                                         placeholder="123456"
-                                        className="text-center text-lg tracking-widest h-12"
+                                        className="h-12 text-center text-lg tracking-widest"
                                         value={otp}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOtp(e.target.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOtp(e.target.value.replace(/\D/g, ''))}
                                         required
                                     />
                                 </Field>
@@ -86,7 +82,7 @@ export default function VerifyOtp() {
                                     <Button type="submit" disabled={loading} className="w-full">
                                         {loading ? 'Verifying...' : 'Verify & Login'}
                                     </Button>
-                                    <Button type="button" variant="ghost" className="w-full mt-2" onClick={() => navigate('/login')}>
+                                    <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => navigate('/login')}>
                                         Back to Login
                                     </Button>
                                 </Field>

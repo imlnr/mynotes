@@ -69,12 +69,9 @@ router.post('/verify-otp', authController.verifyOtp);
  *           schema:
  *             type: object
  *             required:
- *               - email
- *               - name
+ *               - accessToken
  *             properties:
- *               email:
- *                 type: string
- *               name:
+ *               accessToken:
  *                 type: string
  *     responses:
  *       200:

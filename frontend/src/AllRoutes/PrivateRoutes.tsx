@@ -1,12 +1,10 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { SidebarWrapper } from '@/components/sidebar-wrapper';
+import { useAppSelector } from '@/store';
 
 const PrivateRoutes: React.FC = () => {
-    // Basic check for auth token. Replace with your actual auth context or token logic
-    const isAuthenticated = !!localStorage.getItem('token');
-
-    // For testing purposes, if you want to bypass auth, change the above to: const isAuthenticated = true;
+    const isAuthenticated = Boolean(useAppSelector((state) => state.auth.token));
 
     return isAuthenticated ? (
         <SidebarWrapper>

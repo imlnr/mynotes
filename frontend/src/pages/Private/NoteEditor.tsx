@@ -1,66 +1,62 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 import { showToast } from "@/utils/toastUtils";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useDebounceCallback } from "@/utils/debounce";
-import type { AppDispatch, RootState } from "@/store";
-import { createNote, updateNote, fetchNoteById, setCurrentNote, deleteNote } from "@/store/slices/notesSlice";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { createNote, updateNote, fetchNoteById, setCurrentNote, deleteNote, archiveNote } from "@/store/slices/notesSlice";
 import { ActionDropdown } from "@/components/action-dropdown";
 import { ActionIcons } from "@/utils/action-icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomAlertDialog } from "@/components/custom-alert-dialog";
+import { ShareNoteDialog } from "@/components/share-note-dialog";
 import { useTheme } from "@/components/theme-provider";
 
 export default function NoteEditor() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isShareOpen, setIsShareOpen] = useState(false);
     const { theme } = useTheme();
     const { id: routeId } = useParams();
     const id = routeId || "new";
     const navigate = useNavigate();
-    const dispatch = useDispatch<AppDispatch>();
+    const dispatch = useAppDispatch();
+    const token = useAppSelector((state) => state.auth.token);
 
-    // Select note and full list from Redux store for optimistic loading
-    const { currentNote, items: allNotes } = useSelector((state: RootState) => state.notes);
+    const { currentNote, items: allNotes } = useAppSelector((state) => state.notes);
 
     const [title, setTitle] = useState("");
-    const [loading, setLoading] = useState(false); // Initialized later based on cache
+    const [loading, setLoading] = useState(false);
     const [savingStatus, setSavingStatus] = useState<"saved" | "saving" | "error">("saved");
 
     const editor = useCreateBlockNote();
-
-    const noteActions = [
-        { label: "Open", icon: ActionIcons.Open, onClick: () => showToast.info("Opening note...") },
-        {
-            label: "Share", icon: ActionIcons.Share, onClick: () => {
-                navigator.clipboard.writeText(window.location.href);
-                showToast.info("Link copied to clipboard!");
-            }
-        },
-        { label: "Publish", icon: ActionIcons.Publish, onClick: () => showToast.success("Note published!") },
-        {
-            label: "Delete",
-            icon: ActionIcons.Delete,
-            variant: "destructive" as const,
-            onClick: () => setIsDeleteDialogOpen(true)
-        },
-    ];
 
     const handleDelete = async () => {
         try {
             await dispatch(deleteNote(id)).unwrap();
             showToast.success("Note deleted");
             navigate("/dashboard");
-        } catch (err) {
+        } catch {
             showToast.error("Failed to delete note");
         }
     };
 
-    // Refs to keep track of the latest state for the debounced save function
+    const handleArchive = useCallback(async () => {
+        if (id === "new") return;
+        const archived = !currentNote?.isArchived;
+        try {
+            await dispatch(archiveNote({ id, archived })).unwrap();
+            showToast.success(archived ? "Note archived" : "Note restored");
+            if (archived) navigate("/dashboard");
+        } catch {
+            showToast.error("Could not update note");
+        }
+    }, [id, currentNote?.isArchived, dispatch, navigate]);
+
     const titleRef = useRef(title);
     const idRef = useRef(id);
     const savingRef = useRef(savingStatus);
@@ -79,25 +75,19 @@ export default function NoteEditor() {
         savingRef.current = savingStatus;
     }, [savingStatus]);
 
-    // Redux-based Save Function
-    const saveNoteRedux = useCallback(async (currentId: string, currentTitle: string, currentContent: any[]) => {
+    const saveNoteRedux = useCallback(async (currentId: string, currentTitle: string, currentContent: unknown[]) => {
         if (!currentId) return;
 
         try {
-            console.log(`[NoteEditor] API CALL: Saving ${currentId}`);
             if (currentId === "new") {
                 const resultAction = await dispatch(createNote({ title: currentTitle, content: currentContent })).unwrap();
-                console.log("[NoteEditor] Note created on backend");
-                // Navigate but don't set loading state (since we have the note in Redux)
                 lastLoadedIdRef.current = resultAction._id;
                 navigate(`/dashboard/note/${resultAction._id}`, { replace: true });
             } else {
                 await dispatch(updateNote({ id: currentId, title: currentTitle, content: currentContent })).unwrap();
-                console.log("[NoteEditor] Note updated on backend");
             }
             setSavingStatus("saved");
-        } catch (err: any) {
-            console.error("[NoteEditor] Save failed:", err);
+        } catch {
             setSavingStatus("error");
             showToast.error("Failed to auto-save note");
         }
@@ -110,10 +100,8 @@ export default function NoteEditor() {
         const currentTitle = newTitle !== undefined ? newTitle : titleRef.current;
         const blocks = editor.document;
 
-        // CRITICAL: Block any save during initial setup or if note is empty
         if (isInitializingRef.current) return;
 
-        // Check if the document is essentially empty
         const isDocEmpty = blocks.length === 1 &&
             blocks[0].type === "paragraph" &&
             (!blocks[0].content || (Array.isArray(blocks[0].content) && blocks[0].content.length === 0));
@@ -123,7 +111,6 @@ export default function NoteEditor() {
             return;
         }
 
-        // Only show "saving" status if it's not already there
         if (savingRef.current !== "saving") {
             setSavingStatus("saving");
         }
@@ -131,17 +118,13 @@ export default function NoteEditor() {
         debouncedSave(currentId, currentTitle, blocks);
     }, [debouncedSave, editor]);
 
-    // OPTIMISTIC LOADING & Initialization
     useEffect(() => {
         debouncedSave.cancel();
 
         if (id && id !== "new") {
-            // 1. Check if note is already in Redux (either as currentNote or in allNotes)
-            const cachedNote = allNotes.find(n => n._id === id);
+            const cachedNote = allNotes.find((n) => n._id === id);
 
             if (cachedNote) {
-                console.log(`[NoteEditor] Cache Hit: Loading ${id} from memory`);
-                // If it's already currentNote, we don't even need to dispatch
                 if (currentNote?._id !== id) {
                     dispatch(setCurrentNote(cachedNote));
                 }
@@ -149,35 +132,26 @@ export default function NoteEditor() {
                 return;
             }
 
-            // 2. If it is currentNote but not in allNotes (unlikely but possible)
             if (currentNote?._id === id) {
                 setLoading(false);
                 return;
             }
 
-            // 3. Fallback: Fetch from backend if not found in cache
             const loadNote = async () => {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    console.log("[NoteEditor] Unauthenticated: Skipping fetch");
-                    return;
-                }
+                if (!token) return;
 
-                console.log(`[NoteEditor] Cache Miss: Fetching ${id} from API`);
                 setLoading(true);
                 try {
                     await dispatch(fetchNoteById(id)).unwrap();
-                } catch (err) {
+                } catch {
                     showToast.error("Note not found");
                     navigate("/dashboard");
                 } finally {
                     setLoading(false);
                 }
             };
-            loadNote();
+            void loadNote();
         } else {
-            // New Note Logic
-            console.log("[NoteEditor] Zero-API Mode: Initializing new note");
             isInitializingRef.current = true;
             setLoading(false);
             setTitle("");
@@ -187,54 +161,81 @@ export default function NoteEditor() {
             lastLoadedIdRef.current = "new";
             setTimeout(() => { isInitializingRef.current = false; }, 100);
         }
-    }, [id, dispatch, navigate, editor, debouncedSave, allNotes]); // Included allNotes for cache check
+    }, [id, dispatch, navigate, editor, debouncedSave, allNotes, currentNote?._id, token]);
 
-    // Update Local Editor State when currentNote is resolved (from cache or API)
     useEffect(() => {
-        // Only update editor blocks if we've actually switched to a DIFFERENT note
         if (currentNote && currentNote._id === id && lastLoadedIdRef.current !== id) {
-            console.log(`[NoteEditor] Initializing Content: ${id}`);
             isInitializingRef.current = true;
             setTitle(currentNote.title || "");
 
-            // Set document editor content
             if (currentNote.content && currentNote.content.length > 0) {
-                editor.replaceBlocks(editor.document, currentNote.content);
+                editor.replaceBlocks(editor.document, currentNote.content as never);
             } else {
                 editor.replaceBlocks(editor.document, [{ type: "paragraph", content: [] }]);
             }
 
             lastLoadedIdRef.current = id;
-            // Short timeout to ensure editor is ready before allowing triggerSave
             setTimeout(() => { isInitializingRef.current = false; }, 50);
         }
     }, [currentNote, id, editor]);
 
+    const noteActions = useMemo(() => ([
+        {
+            label: "Share",
+            icon: ActionIcons.Share,
+            onClick: () => {
+                if (id === "new") {
+                    showToast.info("Save the note first to share it");
+                    return;
+                }
+                setIsShareOpen(true);
+            },
+        },
+        {
+            label: currentNote?.isArchived ? "Restore" : "Archive",
+            icon: ActionIcons.Archive,
+            onClick: () => void handleArchive(),
+        },
+        {
+            label: "Delete",
+            icon: ActionIcons.Delete,
+            variant: "destructive" as const,
+            onClick: () => setIsDeleteDialogOpen(true),
+        },
+    ]), [currentNote?.isArchived, id, handleArchive]);
+
     if (loading) {
         return (
-            <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full pt-8 h-full">
+            <div className="mx-auto flex h-full w-full max-w-4xl flex-col gap-4 pt-8">
                 <Skeleton className="h-12 w-3/4" />
                 <div className="space-y-4 pt-4">
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-5/6" />
                 </div>
             </div>
         );
     }
 
-    // Resolve theme for BlockNote
     const resolvedTheme = theme === "system"
         ? (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
         : theme;
 
+    const liveNote = allNotes.find((n) => n._id === id) || currentNote;
+
     return (
-        <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+            {liveNote?.isArchived && (
+                <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-3 py-2 text-sm">
+                    <span>This note is archived.</span>
+                    <Button size="sm" variant="outline" onClick={() => void handleArchive()}>
+                        Restore
+                    </Button>
+                </div>
+            )}
             <div className="flex items-center justify-between">
                 <Input
-                    className="text-4xl font-bold border-none focus-visible:ring-0 px-0 h-auto placeholder:opacity-50 flex-1 bg-transparent"
+                    className="h-auto flex-1 border-none bg-transparent px-0 text-4xl font-bold placeholder:opacity-50 focus-visible:ring-0"
                     placeholder="Note Title"
                     value={title}
                     onChange={(e) => {
@@ -244,7 +245,7 @@ export default function NoteEditor() {
                     }}
                 />
                 <div className="flex items-center gap-4">
-                    <div className="text-xs text-muted-foreground min-w-[80px] text-right">
+                    <div className="min-w-[80px] text-right text-xs text-muted-foreground">
                         {savingStatus === "saving" && <span className="animate-pulse">Saving...</span>}
                         {savingStatus === "saved" && <span>All changes saved</span>}
                         {savingStatus === "error" && <span className="text-red-500">Save failed</span>}
@@ -270,8 +271,13 @@ export default function NoteEditor() {
                 action={{
                     text: "Delete",
                     variant: "destructive",
-                    onClick: handleDelete,
+                    onClick: () => void handleDelete(),
                 }}
+            />
+            <ShareNoteDialog
+                open={isShareOpen}
+                onOpenChange={setIsShareOpen}
+                note={liveNote}
             />
         </div>
     );
